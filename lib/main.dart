@@ -1,10 +1,14 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_icons/flutter_icons.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:risiko_wuerfler/true_random.dart';
 
 
 void main() {
   runApp(const MyApp());
+  TrueRandomDice.getQuota();
 }
 
 class MyApp extends StatelessWidget {
@@ -61,13 +65,42 @@ class _MyHomePageState extends State<MyHomePage> {
   FocusNode rightThresholdNode = FocusNode();
 
   bool playing = false;
+  bool lastRollFailed = false;
+  DateTime lastTimeRollFailed = DateTime(2000);
 
-
-
-  List<int> getDice(int amount){
+  Future<List<int>> getDice(int amount) async {
     List<int> erg = [];
-    for(int i = 0; i < amount; i++){
-      erg.add(Random().nextInt(5) + 1);
+    if(lastRollFailed && DateTime.now().difference(lastTimeRollFailed).compareTo(const Duration(seconds: 10)) < 0){
+      for(int i = 0; i < amount; i++){
+        erg.add(Random().nextInt(5) + 1);
+      }
+    }else{
+      try {
+        erg = await TrueRandomDice.getDice(amount);
+        lastRollFailed = false;
+      } catch (e) {
+        lastTimeRollFailed = DateTime.now();
+
+        if(!lastRollFailed){
+          setState(() {
+            playing = false;
+          });
+          Fluttertoast.showToast(
+            msg: "can't get true random from random.org switching to pseudo random",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.grey,
+            textColor: Colors.white,
+            fontSize: 16.0
+          );
+          lastRollFailed = true;
+        }else{
+          for(int i = 0; i < amount; i++){
+            erg.add(Random().nextInt(5) + 1);
+          }
+        }
+      }
     }
     return erg;
   }
@@ -91,14 +124,15 @@ class _MyHomePageState extends State<MyHomePage> {
       }
 
       if(leftPlayer > 2 && rightPlayer > 1){
-        setState(() {  
-          int dicesLeft = min(leftPlayer - 1, 3);
-          List<int> dices = getDice(dicesLeft + 2);    
-          List<int> left = dices.sublist(0,dicesLeft);
-          List<int> right = dices.sublist(dicesLeft, dicesLeft + 2);
-          left.sort((x,y) => y.compareTo(x));
-          right.sort((x,y) => y.compareTo(x));
+        int dicesLeft = min(leftPlayer - 1, 3);
+        List<int> dices = await getDice(dicesLeft + 2);    
+        if(dices.length != dicesLeft + 2) return;
+        List<int> left = dices.sublist(0,dicesLeft);
+        List<int> right = dices.sublist(dicesLeft, dicesLeft + 2);
+        left.sort((x,y) => y.compareTo(x));
+        right.sort((x,y) => y.compareTo(x));
 
+        setState(() {  
           if(left[0] > right[0] && left[1] > right[1]){
             rightPlayer -= 2;
           }else if((left[0] > right[0] && left[1] <= right[1]) || (left[0] <= right[0] && left[1] > right[1])){
@@ -111,13 +145,14 @@ class _MyHomePageState extends State<MyHomePage> {
           rightController.text = rightPlayer.toString();
         });
       }else if (leftPlayer > 1 && rightPlayer == 1){
-        setState(() {  
-          int dicesLeft = min(leftPlayer - 1, 3);
-          List<int> dices = getDice(dicesLeft + 1);    
-          List<int> left = dices.sublist(0,dicesLeft);
-          List<int> right = dices.sublist(dicesLeft, dicesLeft + 1);
-          left.sort((x,y) => y.compareTo(x));
+        int dicesLeft = min(leftPlayer - 1, 3);
+        List<int> dices = await getDice(dicesLeft + 1);    
+        if(dices.length != dicesLeft + 1) return;
+        List<int> left = dices.sublist(0,dicesLeft);
+        List<int> right = dices.sublist(dicesLeft, dicesLeft + 1);
+        left.sort((x,y) => y.compareTo(x));
 
+        setState(() {  
           if(left[0] > right[0]) {
             rightPlayer -= 1;
           }else{
@@ -229,6 +264,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: const [Icon(FlutterIcons.dice_multiple_mco)],
       ),
       body: Column(
         children: [
