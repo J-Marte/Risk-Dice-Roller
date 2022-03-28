@@ -11,6 +11,9 @@ class TrueRandomDice {
   static const double _diceFactor = 3;
   static bool _fetching = false;
   static int _quota = 0;
+  static int get quota{
+    return _quota;
+  }
 
   // from https://www.random.org/clients/http/#quota
   static Future<int> getQuota() async {

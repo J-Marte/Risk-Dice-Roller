@@ -1,8 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_icons/flutter_icons.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:risiko_wuerfler/presentation/risk_dice_roller_icons.dart';
 import 'package:risiko_wuerfler/true_random.dart';
 
 
@@ -18,11 +18,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Risk Dice Roller',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Risk Dice Roller'),
     );
   }
 }
@@ -68,6 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool lastRollFailed = false;
   DateTime lastTimeRollFailed = DateTime(2000);
 
+  // handel the generation of the dice values 
   Future<List<int>> getDice(int amount) async {
     List<int> erg = [];
     if(lastRollFailed && DateTime.now().difference(lastTimeRollFailed).compareTo(const Duration(seconds: 10)) < 0){
@@ -264,7 +265,15 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        actions: const [Icon(FlutterIcons.dice_multiple_mco)],
+        actions: [
+          Tooltip(
+            message: lastRollFailed ? "pseudo-random" : "true Random form random.org\n(Quota:${TrueRandomDice.quota})",
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Icon(lastRollFailed ? RiskDiceRoller.dicesRandomNot : RiskDiceRoller.dicesRandom),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -276,6 +285,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: ListView(
                     physics: const ClampingScrollPhysics(),
                     children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 10),
+                        child: Text("Attacker:", style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold
+                        ),),
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: ProgressBar(progress: (leftPlayerMax == 0 ? 1 : leftPlayer/leftPlayerMax),),
@@ -328,6 +344,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Padding(padding: const EdgeInsets.only(right: 10), child: ListView(
                   physics: const ClampingScrollPhysics(),
                   children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 10),
+                      child: Text("Defender:", style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold
+                      ),),
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: ProgressBar(progress: (rightPlayerMax == 0 ? 1 : rightPlayer/rightPlayerMax),),
