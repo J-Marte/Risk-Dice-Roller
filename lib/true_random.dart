@@ -20,7 +20,7 @@ class TrueRandomDice {
     http.Response resp = await http.get(Uri.parse('https://www.random.org/quota/?format=plain'));
     try {
       _quota = int.parse(resp.body.split('\n')[0]);
-      print(_quota);
+      // print(_quota);
       return _quota;
     } catch (e) {
       return 0;

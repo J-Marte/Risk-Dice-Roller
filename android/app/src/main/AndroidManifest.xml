@@ -1,8 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.risiko_wuerfler">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+
    <application
         android:label="risiko_wuerfler"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"
