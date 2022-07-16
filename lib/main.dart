@@ -23,6 +23,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:risiko_wuerfler/fightLog/fight_details.dart';
+import 'package:risiko_wuerfler/fightLog/fight_log_view.dart';
 import 'package:risiko_wuerfler/presentation/risk_dice_roller_icons.dart';
 import 'package:risiko_wuerfler/true_random.dart';
 
@@ -34,6 +36,11 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  
+  static List<Fight> fights = [
+    Fight(rounds: []),
+  ];
 
   // This widget is the root of your application.
   @override
@@ -48,6 +55,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
+
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
 
@@ -55,6 +64,15 @@ class MyHomePage extends StatefulWidget {
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
+}
+
+enum PlayState{
+  idle, 
+  start,
+  running,
+  paused,
+  lose,
+  win
 }
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -88,6 +106,10 @@ class _MyHomePageState extends State<MyHomePage> {
   bool playing = false;
   bool lastRollFailed = false;
   DateTime lastTimeRollFailed = DateTime(2000);
+
+  PlayState state = PlayState.idle;
+
+  List<int> statistic = [0,0,0,0,0,0];
 
   // handel the generation of the dice values 
   Future<List<int>> getDice(int amount) async {
@@ -124,11 +146,21 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       }
     }
+    for(int i = 0; i < amount; i++){
+      statistic[erg[i]]++;
+    }
+      
     return erg;
   }
 
 
   void play() async {
+    if(state == PlayState.idle){
+      state = PlayState.running;
+      MyApp.fights.last.attackerBegin = leftPlayerMax;
+      MyApp.fights.last.defenderBegin = rightPlayerMax;
+    }
+
     if(playing){
       setState(() {
         playing = false;
@@ -139,10 +171,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     while(leftPlayer > 0){
       if((leftPlayer <= leftThreshold && leftThresholdEnable) || (rightPlayer <= rightThreshold && rightThresholdEnable)){
-        setState(() {
-          playing = false;
-        });
-        return;
+        state = PlayState.paused;
+        break;
       }
 
       if(leftPlayer > 2 && rightPlayer > 1){
@@ -153,6 +183,7 @@ class _MyHomePageState extends State<MyHomePage> {
         List<int> right = dices.sublist(dicesLeft, dicesLeft + 2);
         left.sort((x,y) => y.compareTo(x));
         right.sort((x,y) => y.compareTo(x));
+
 
         setState(() {  
           if(left[0] > right[0] && left[1] > right[1]){
@@ -166,6 +197,8 @@ class _MyHomePageState extends State<MyHomePage> {
           leftController.text = leftPlayer.toString();
           rightController.text = rightPlayer.toString();
         });
+        
+        MyApp.fights.last.rounds.add(RiskRound(attackerDices:  left,  defenderDices: right, attackerNow: leftPlayer, defenderNow: rightPlayer));
       }else if (leftPlayer > 1 && rightPlayer == 1){
         int dicesLeft = min(leftPlayer - 1, 3);
         List<int> dices = await getDice(dicesLeft + 1);    
@@ -183,19 +216,26 @@ class _MyHomePageState extends State<MyHomePage> {
           leftController.text = leftPlayer.toString();
           rightController.text = rightPlayer.toString();
         });
+        MyApp.fights.last.rounds.add(RiskRound(attackerDices:  left,  defenderDices: right, attackerNow: leftPlayer, defenderNow: rightPlayer));
       }else{
-        setState(() {
-          playing = false;
-        });
-        return;
+        if(rightPlayer == 0) {
+          state = PlayState.win;
+        }else{
+          state = PlayState.lose;  
+        }
+        break;
       }
 
       await Future.delayed(const Duration(milliseconds: 100));
 
       if(!playing) {
-        return;
+        state = PlayState.paused;
+        break;
       }
     }
+    MyApp.fights.last.defenderEnd = rightPlayer;
+    MyApp.fights.last.attackerEnd = leftPlayer;
+      
     setState(() {
       playing = false;
     });
@@ -219,6 +259,7 @@ class _MyHomePageState extends State<MyHomePage> {
         errorStringLeft = "must be a positive integer";
       }
     });
+    changeInput();
   }
   
   void rightOnChange(value){
@@ -239,6 +280,8 @@ class _MyHomePageState extends State<MyHomePage> {
         errorStringRight = "must be a positive integer";
       }
     });
+
+    changeInput();
   }
 
   void leftThresholdOnChange(value){
@@ -281,6 +324,13 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void changeInput(){
+    if(MyApp.fights.last.rounds.isNotEmpty){
+      MyApp.fights.add(Fight(rounds: []));
+      state = PlayState.idle;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -293,6 +343,12 @@ class _MyHomePageState extends State<MyHomePage> {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Icon(lastRollFailed ? RiskDiceRoller.dicesRandomNot : RiskDiceRoller.dicesRandom),
             ),
+          ),
+          IconButton(
+            onPressed: (){
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const FightLogView()));
+            },
+            icon: const Icon(Icons.note)
           ),
         ],
       ),

@@ -19,7 +19,6 @@ ausdrücklich oder stillschweigend - verbreitet.
 unter der Lizenz sind dem Lizenztext zu entnehmen.
 */
 
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 
@@ -67,7 +66,7 @@ class TrueRandomDice {
 
     try{
       await _fetchDiceRolls();
-    }catch(e){ rethrow;}
+    }catch(_){ }
     List<int> temp = _rolledDices.sublist(0, amount);
     _rolledDices.removeRange(0, amount);
     return temp;
